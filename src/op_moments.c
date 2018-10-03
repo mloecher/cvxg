@@ -220,3 +220,16 @@ int main (void)
     return 0;
 }
 */
+
+
+void cvxop_moments_destroy(cvxop_moments *opQ)
+{
+    free(opQ->moment_tol.vals);
+    free(opQ->norms.vals);
+    free(opQ->Q.vals);
+    free(opQ->sigQ.vals);
+    free(opQ->zQ.vals);
+    free(opQ->zQbuff.vals);
+    free(opQ->zQbar.vals);
+    free(opQ->Qx.vals);
+}

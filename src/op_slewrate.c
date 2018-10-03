@@ -101,5 +101,10 @@ int cvxop_slewrate_check(cvxop_slewrate *opD, cvx_mat *G)
     return slew_bad;
 }
 
-// cvxop_slewrate_add2taumx(&opD, &tau_mat);
-// cvxop_slewrate_update(&opD, &txmx);
+void cvxop_slewrate_destroy(cvxop_slewrate *opD)
+{
+    free(opD->zD.vals);
+    free(opD->zDbuff.vals);
+    free(opD->zDbar.vals);
+    free(opD->Dx.vals);
+}

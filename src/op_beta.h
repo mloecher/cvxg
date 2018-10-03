@@ -19,6 +19,6 @@ typedef struct {
 
 void cvxop_beta_init(cvxop_beta *opC, int N, double dt, int verbose);
 void cvxop_beta_add2taumx(cvxop_beta *opC, cvx_mat *taumx);
-
+void cvxop_beta_destroy(cvxop_beta *opC);
 
 #endif /* CVX_OPBETA_H */

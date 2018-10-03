@@ -10,16 +10,16 @@ command = ['mex -v CFLAGS="$CFLAGS -std=c11" ' src_files ' ' inc_path];
 eval(command);
 
 %% This is how you run it for a fixed TE
-gmax = 0.074;
-smax = 50.0;
+gmax = 0.04;
+smax = 12.0;
 m0_tol = 0.0;
-m1_tol = 0.0;
-m2_tol = 0.0;
+m1_tol = -1.0;
+m2_tol = -1.0;
 TE = 60.0;
-T_readout = 10.0;
+T_readout = 12.0;
 T_90 = 3.0;
-T_180 = 12.0;
-dt = 0.2e-3;
+T_180 = 6.0;
+dt = 0.6e-3;
 diffmode = 2;
 
 G = mex_CVXG(gmax, smax, m0_tol, m1_tol, m2_tol, TE, T_readout, T_90, T_180, dt, diffmode);
@@ -27,7 +27,7 @@ G = mex_CVXG(gmax, smax, m0_tol, m1_tol, m2_tol, TE, T_readout, T_90, T_180, dt,
 bval = get_bval(G, T_readout, dt)
 moments = get_moments(G, T_readout, dt);
 
-
+plot(diff(G)/dt);
 %% 
 % This is how you run it for a fixed bval, note that this is a different
 % line search than used previously, it should be faster

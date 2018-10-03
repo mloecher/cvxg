@@ -127,3 +127,20 @@ double cvxop_bval_getbval(cvxop_bval *opB, cvx_mat *G)
 
 
 }
+
+
+void cvxop_bval_destroy(cvxop_bval *opB)
+{
+    free(opB->Binit.vals);
+    free(opB->B.vals);
+    free(opB->sigBdenom.vals);
+    free(opB->sigB.vals);
+
+    free(opB->Btau.vals);
+    free(opB->Bvaltemp.vals);
+
+    free(opB->zB.vals);
+    free(opB->zBbuff.vals);
+    free(opB->zBbar.vals);
+    free(opB->Bx.vals);
+}

@@ -76,3 +76,8 @@ int cvxop_gradient_check(cvxop_gradient *opG, cvx_mat *G)
 
     return grad_bad;
 }
+
+void cvxop_gradient_destroy(cvxop_gradient *opG)
+{
+    free(opG->Gfix.vals);
+}

@@ -37,3 +37,8 @@ void cvxop_beta_add2taumx(cvxop_beta *opC, cvx_mat *taumx)
 
     }
 }
+
+void cvxop_beta_destroy(cvxop_beta *opC)
+{
+    free(opC->C.vals);
+}

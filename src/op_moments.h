@@ -35,5 +35,6 @@ void cvxop_moments_add2tau(cvxop_moments *opQ, cvx_mat *tau_mat);
 void cvxop_moments_add2taumx(cvxop_moments *opQ, cvx_mat *taumx);
 void cvxop_moments_update(cvxop_moments *opQ, cvx_mat *txmx, double relax);
 int cvxop_moments_check(cvxop_moments *opQ, cvx_mat *G);
+void cvxop_moments_destroy(cvxop_moments *opQ);
 
 #endif /* CVX_OPMOMENTS_H */

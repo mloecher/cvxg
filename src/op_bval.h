@@ -35,6 +35,7 @@ void cvxop_bval_add2tau(cvxop_bval *opB, cvx_mat *tau_mat);
 void cvxop_bval_add2taumx(cvxop_bval *opB, cvx_mat *taumx);
 void cvxop_bval_update(cvxop_bval *opB, cvx_mat *txmx, double relax);
 double cvxop_bval_getbval(cvxop_bval *opB, cvx_mat *G);
+void cvxop_bval_destroy(cvxop_bval *opB);
 
 
 #endif /* CVX_OPBVAL_H */

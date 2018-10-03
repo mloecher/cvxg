@@ -139,6 +139,12 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
     //     printf("%.2e  ", opD->zD.vals[i]);
     // }
     // printf("\n\n");
+
+    free(xbar.vals);
+    free(taumx.vals);
+    free(txmx.vals);
+    free(tau.vals);
+
 }
 
 void run_kernel_diff(double **G_out, int *N_out, double gmax, double smax, double m0_tol, double m1_tol, double m2_tol, double TE, double T_readout, double T_90, double T_180, double dt, int diffmode)
@@ -207,6 +213,12 @@ void run_kernel_diff(double **G_out, int *N_out, double gmax, double smax, doubl
     if (verbose > 0) {
         printf ("Elapsed Time = %.4f ms\n", 1000.0*elapsed);
     }
+
+    cvxop_gradient_destroy(&opG);
+    cvxop_slewrate_destroy(&opD);
+    cvxop_moments_destroy(&opQ);
+    cvxop_beta_destroy(&opC);
+    cvxop_bval_destroy(&opB);
 
 }
 
