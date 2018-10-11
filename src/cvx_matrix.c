@@ -7,7 +7,7 @@ int cvxmat_alloc(cvx_mat *mat, int rows, int cols)
 {
     mat->vals = malloc(rows * cols * sizeof(double));
     if (mat->vals == NULL) {
-        fprintf(stderr, "*** ERROR: Out-of-memory ***\n");
+        fprintf(stderr, "*** ERROR: Out-of-memory rows = %d  cols = %d ***\n", rows, cols);
         return 0;
     }
 

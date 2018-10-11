@@ -149,8 +149,8 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
 
 void run_kernel_diff(double **G_out, int *N_out, double gmax, double smax, double m0_tol, double m1_tol, double m2_tol, double TE, double T_readout, double T_90, double T_180, double dt, int diffmode)
 {
-    struct timespec ts0;
-    struct timespec ts1;
+    // struct timespec ts0;
+    // struct timespec ts1;
 
     double relax = 1.9;
     int verbose = 0;
@@ -199,20 +199,20 @@ void run_kernel_diff(double **G_out, int *N_out, double gmax, double smax, doubl
     
 
     cvx_mat G;
-    clock_gettime(CLOCK_MONOTONIC, &ts0);
+    // clock_gettime(CLOCK_MONOTONIC, &ts0);
     cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose);
-    clock_gettime(CLOCK_MONOTONIC, &ts1);
+    // clock_gettime(CLOCK_MONOTONIC, &ts1);
 
     *N_out = G.rows;
     *G_out = G.vals;
 
-    double elapsed;
-    elapsed = (ts1.tv_sec - ts0.tv_sec);
-    elapsed += (ts1.tv_nsec - ts0.tv_nsec) / 1000000000.0;
+    // double elapsed;
+    // elapsed = (ts1.tv_sec - ts0.tv_sec);
+    // elapsed += (ts1.tv_nsec - ts0.tv_nsec) / 1000000000.0;
 
-    if (verbose > 0) {
-        printf ("Elapsed Time = %.4f ms\n", 1000.0*elapsed);
-    }
+    // if (verbose > 0) {
+    //     printf ("Elapsed Time = %.4f ms\n", 1000.0*elapsed);
+    // }
 
     cvxop_gradient_destroy(&opG);
     cvxop_slewrate_destroy(&opD);
@@ -235,28 +235,6 @@ int main (void)
     int N;
 
     run_kernel_diff(&G, &N, 0.074, 50.0, 0.0, 0.0, 0.0, 60.0, 10.0, 3.0, 6.0, 0.3e-3, diffmode);
-
-
-    // run_kernel_diff(0.074, 100.0, 0.0, 0.0, 0.0, 5.0, 1.0, 0.5, 0.5, 0.1e-3);
-
-
-    // cvxop_gradient opG;
-    // cvxop_gradient_init(&opG, 40, 0.1e-3, .074);
-
-    // cvxop_slewrate opD;
-    // cvxop_slewrate_init(&opD, 40, 0.1e-3, 100.0, relax);
-
-    // cvxop_moments opQ;
-    // cvxop_moments_init(&opQ, 40, 24, 0.1e-3,
-    //                     0.0, 0.0, 0.0,
-    //                     relax);
-
-    // cvxop_beta opC;
-    // cvxop_beta_init(&opC, 40, 0.1e-3);
-
-    // cvx_optimize_kernel(&opG, &opD, &opQ, &opC, 40, relax);
-
-
 
     return 0;
 }

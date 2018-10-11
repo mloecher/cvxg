@@ -1,3 +1,8 @@
 *.exe
+*.pyd
+python/build/
 .vscode/
 testing/
+python/*.c
+python/*.cpp
+python/.ipynb_checkpoints/
