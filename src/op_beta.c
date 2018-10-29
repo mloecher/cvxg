@@ -1,10 +1,11 @@
 #include "op_beta.h"
 
-void cvxop_beta_init(cvxop_beta *opC, int N, double dt, int verbose) {
+void cvxop_beta_init(cvxop_beta *opC, int N, double dt, double weight, int verbose) {
     opC->active = 1;
     opC->N = N;
     opC->dt = dt;
     opC->verbose = verbose;
+    opC->weight = weight;
 
     cvxmat_alloc(&opC->C, N, 1);
 
@@ -23,9 +24,21 @@ void cvxop_beta_init(cvxop_beta *opC, int N, double dt, int verbose) {
     norm = sqrt(norm);
 
     for (int i = 0; i < N; i++) {
-        opC->C.vals[i] /= norm;
+        opC->C.vals[i] *= opC->weight / norm;
     }
 }
+
+
+void cvxop_beta_reweight(cvxop_beta *opC, double weight_mod)
+{
+    opC->weight *= weight_mod;
+
+    for (int i = 0; i < opC->C.N; i++) {
+        opC->C.vals[i] *= opC->weight;
+    }
+}
+
+
 
 void cvxop_beta_add2taumx(cvxop_beta *opC, cvx_mat *taumx)
 {

@@ -1,5 +1,7 @@
+*.p
 *.exe
 *.pyd
+*.ipynb
 python/build/
 .vscode/
 testing/

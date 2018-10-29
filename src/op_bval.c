@@ -1,12 +1,15 @@
 #include "op_bval.h"
 
-void cvxop_bval_init(cvxop_bval *opB, int N, int ind_inv, double dt, int verbose) {
+void cvxop_bval_init(cvxop_bval *opB, int N, int ind_inv, double dt, double init_weight, int verbose) {
     opB->active = 1;
     opB->N = N;
     opB->dt = dt;
     opB->ind_inv = ind_inv;
     opB->verbose = verbose;
+    opB->mod = 1.0;
+    opB->weight = (1.0e3 * dt) * init_weight;
 
+    cvxmat_alloc(&opB->B0, N, N);
     cvxmat_alloc(&opB->B, N, N);
     cvxmat_alloc(&opB->Binit, N, N);
     cvxmat_alloc(&opB->sigBdenom, N, 1);
@@ -20,6 +23,8 @@ void cvxop_bval_init(cvxop_bval *opB, int N, int ind_inv, double dt, int verbose
     cvxmat_alloc(&opB->zBbuff, N, 1);
     cvxmat_alloc(&opB->zBbar, N, 1);
     cvxmat_alloc(&opB->Bx, N, 1);
+
+    cvxmat_alloc(&opB->norm_helper, N, 1);
 
     for (int j = 0; j < N; j++) {
         for (int i = 0; i < N; i++) {
@@ -35,10 +40,10 @@ void cvxop_bval_init(cvxop_bval *opB, int N, int ind_inv, double dt, int verbose
         }
     }
 
-    cvxmat_multAtA(&opB->B, &opB->Binit);
+    cvxmat_multAtA(&opB->B0, &opB->Binit);
 
     for (int i = 0; i < opB->B.N; i++) {
-        opB->B.vals[i] *= 1.0;
+        opB->B.vals[i] = opB->weight * opB->B0.vals[i];
     }
 
     double sum;
@@ -65,6 +70,34 @@ void cvxop_bval_init(cvxop_bval *opB, int N, int ind_inv, double dt, int verbose
     //     }
     // }
 }
+
+void cvxop_bval_reweight(cvxop_bval *opB, double weight_mod)
+{
+    opB->weight *= weight_mod;
+
+    for (int i = 0; i < opB->B.N; i++) {
+        opB->B.vals[i] = opB->weight * opB->B0.vals[i];
+    }
+
+    double sum;
+    for (int j = 0; j < opB->N; j++) {
+        sum = 0.0;
+        for (int i = 0; i < opB->N; i++) {
+            double temp = cvxmat_get(&(opB->B), i, j);
+            sum += fabs(temp);
+        }
+        opB->sigBdenom.vals[j] = sum;
+    }
+
+    for (int i = 0; i < opB->N; i++) {
+        opB->sigB.vals[i] = 1.0/opB->sigBdenom.vals[i];
+    }
+
+    for (int i = 0; i < opB->zB.N; i++) {
+        opB->zB.vals[i] *= weight_mod;
+    }
+}
+
 
 void cvxop_bval_add2tau(cvxop_bval *opB, cvx_mat *tau_mat)
 {
@@ -106,21 +139,70 @@ void cvxop_bval_update(cvxop_bval *opB, cvx_mat *txmx, double relax)
             opB->zBbuff.vals[i] = opB->zB.vals[i] + opB->Bx.vals[i];
         }
 
+        double rr = relax;
+
         // zD=p*zDbar+(1-p)*zD;
         for (int i = 0; i < opB->zB.N; i++) {
-            opB->zB.vals[i] = relax * opB->zBbuff.vals[i] + (1 - relax) * opB->zB.vals[i];
+            opB->zB.vals[i] = rr * opB->zBbuff.vals[i] + (1 - rr) * opB->zB.vals[i];
         }
     }
 }
 
-double cvxop_bval_getbval(cvxop_bval *opB, cvx_mat *G)
-{
+double cvxop_bval_getbval(cvxop_bval *opB, cvx_mat *G, cvx_mat *tau)
+{   
+    double AzX = 0.0;
+    if (opB->active > 0) {
+        cvxmat_setvals(&(opB->Btau), 0.0);
+        cvxmat_multAx2(&opB->Btau, &opB->B, &opB->zB);
+        for (int i = 1; i < opB->Btau.N; i++) {
+            AzX += opB->Btau.vals[i] * opB->Btau.vals[i];
+        }
+        AzX = sqrt(AzX);
+    }
+
+
     double mod = 71576597699.4529; // (GAMMA*2*pi)^2
     double bval = 0.0;
+    
+    
+    cvxmat_setvals(&(opB->Bvaltemp), 0.0);
     cvxmat_multAx(&opB->Bvaltemp, &opB->B, G);
+    for (int i = 0; i < opB->Bvaltemp.N; i++) {
+        opB->Bvaltemp.vals[i] *= opB->sigB.vals[i];
+    }
+    cvxmat_setvals(&(opB->norm_helper), 0.0);
+    cvxmat_multAx2(&opB->norm_helper, &opB->B, &opB->Bvaltemp);
+
+
+    double norm0 = 0.0;
+    for (int i = 0; i < opB->Bvaltemp.N; i++) {
+        norm0 += opB->Bvaltemp.vals[i] * opB->Bvaltemp.vals[i];
+        // norm0 += fabs(opB->Bvaltemp.vals[i]);
+    }
+    // norm0 = sqrt(norm0);
+    // opB->d_norm = norm0 * opB->N;
+    opB->d_norm = norm0; 
+
+    double nh_1 = 0.0;
+    double nh_2 = 0.0;
+    double nh_inf = 0.0;
+    for (int i = 0; i < opB->norm_helper.N; i++) {
+        double val = opB->norm_helper.vals[i] * tau->vals[i];
+        nh_2 += val * val;
+        nh_1 += fabs(val);
+        if (fabs(val) > nh_inf) {
+            nh_inf = fabs(val);
+        }
+    }
+    nh_2 = sqrt(nh_2);
+
+    if (opB->verbose>0) {   
+        printf("    bval calc:      weight = %.2e                                norma = %.2e\n", opB->weight, AzX);
+        printf("  ^^^  norm_helper bval  nh_2 = %.2e    nh_inf = %.2e    nh_1 = %.2e\n", nh_2, nh_inf, nh_1);
+    }
 
     for (int i = 0; i < opB->Bvaltemp.N; i++) {
-        bval += G->vals[i] * opB->Bvaltemp.vals[i] * mod * opB->dt;
+        bval += G->vals[i] * opB->Bvaltemp.vals[i] * mod * opB->dt / opB->weight / opB->sigB.vals[i];
     }
 
     return bval;

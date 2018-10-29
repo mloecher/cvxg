@@ -13,12 +13,16 @@ typedef struct {
 
     int N;
     double dt;
+    double weight;
 
+
+    
     cvx_mat C;
 } cvxop_beta;
 
-void cvxop_beta_init(cvxop_beta *opC, int N, double dt, int verbose);
+void cvxop_beta_init(cvxop_beta *opC, int N, double dt, double weight, int verbose);
 void cvxop_beta_add2taumx(cvxop_beta *opC, cvx_mat *taumx);
 void cvxop_beta_destroy(cvxop_beta *opC);
+void cvxop_beta_reweight(cvxop_beta *opC, double weight_mod);
 
 #endif /* CVX_OPBETA_H */

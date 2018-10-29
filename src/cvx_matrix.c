@@ -69,15 +69,32 @@ void cvxmat_multMatMat(cvx_mat *C, cvx_mat *A, cvx_mat *B)
     }
 }
 
+void cvxmat_inplace_transpose(cvx_mat *A)
+{
+    double *new_vals;
+    double *temp_free = A->vals;
+    new_vals = malloc(A->N * sizeof(double));
+    for (int i = 0; i < A->rows; i++) {
+        for (int j = 0; j < A->cols; j++) {
+            new_vals[A->cols * i + j] = A->vals[A->cols * j + i];
+        }
+    }
+    A->vals = new_vals;
+    free(temp_free);
+
+}
+
 void cvxmat_multAtA(cvx_mat *C, cvx_mat *A)
 {
+    cvxmat_inplace_transpose(A);
     double sum;
     for (int i = 0; i < A->rows; i++) {
         for (int j = 0; j < A->cols; j++) {
             sum = 0.0;
             for (int k = 0; k < A->cols; k++) {
                 //sum += A[i,k] * B[k,j]
-                sum += A->vals[i + A->cols * k] * A->vals[j + A->cols * k];
+                sum += A->vals[A->cols * i + k] * A->vals[A->cols * j + k];
+                // sum += A->vals[A->cols * k + i] * A->vals[A->cols * k + j];
             }
             C->vals[j + C->cols * i] = sum;
         }
