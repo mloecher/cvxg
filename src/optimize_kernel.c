@@ -154,7 +154,7 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
             printf("bval / g = %.2e  \n", 
                     opB->d_norm/opG->d_norm);
 
-            if ( (count > 0) && (converge_count > 8) && (limit_break == 0) && (is_balanced > 0)) {
+            if ( (count > 0) && (converge_count > 2) && (limit_break == 0) && (is_balanced > 0)) {
                 if (verbose > 0) {
                     printf("** Early termination at count = %d   bval = %.1f\n", count, obj1);
                 }
@@ -175,8 +175,8 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
                 if (bad_slew > 0) {cvxop_slewrate_reweight(opD, bval_reduction);}
                 
                 if ((bad_slew < 1) && (bad_moments < 1)) {
-                    cvxop_bval_reweight(opB, 2*bval_reduction);
-                    cvxop_beta_reweight(opC, 2*bval_reduction);
+                    cvxop_bval_reweight(opB, 2.0*bval_reduction);
+                    cvxop_beta_reweight(opC, 2.0*bval_reduction);
                 } else {
                     is_balanced = 1;
                 }
@@ -443,10 +443,10 @@ void run_kernel_diff4(double **G_out, int *N_out, double **ddebug,
 
     interp_down(&G, dt, dt2, TE, T_readout);
 
-    run_kernel_refine(&G, *ddebug, gmax, smax, moment_tols, dt2, TE, 
-                        T_readout, T_90, T_180, diffmode,
-                        10.0, 5000.0, 1000.0, 
-                        -1.0);
+    // run_kernel_refine(&G, *ddebug, gmax, smax, moment_tols, dt2, TE, 
+    //                     T_readout, T_90, T_180, diffmode,
+    //                     10.0, 5000.0, 1000.0, 
+    //                     -1.0);
 
     // cvxop_bval_reweight(&opB, 5.0);
     // cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, 0.5, *ddebug);
