@@ -23,6 +23,7 @@ typedef struct {
 void cvxop_beta_init(cvxop_beta *opC, int N, double dt, double weight, int verbose);
 void cvxop_beta_add2taumx(cvxop_beta *opC, cvx_mat *taumx);
 void cvxop_beta_destroy(cvxop_beta *opC);
+void cvxop_beta_add2tau(cvxop_beta *opC, cvx_mat *tau_mat);
 void cvxop_beta_reweight(cvxop_beta *opC, double weight_mod);
 
 #endif /* CVX_OPBETA_H */

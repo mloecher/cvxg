@@ -1,7 +1,6 @@
 #include "op_bval.h"
 
 void cvxop_bval_init(cvxop_bval *opB, int N, int ind_inv, double dt, double init_weight, int verbose) {
-    opB->active = 1;
     opB->N = N;
     opB->dt = dt;
     opB->ind_inv = ind_inv;
@@ -29,86 +28,90 @@ void cvxop_bval_init(cvxop_bval *opB, int N, int ind_inv, double dt, double init
 
     cvxmat_alloc(&opB->C, N, 1);
 
-    double tt;
-    for (int i = 0; i < N; i++) {
-        tt = N-i;
-        opB->C.vals[i] = tt*(tt+1)/2.0;
-    }
 
-
-    for (int j = 0; j < N; j++) {
-        for (int i = 0; i < N; i++) {
-            
-            if (i >= j) {
-                if (j >= ind_inv) {
-                    cvxmat_set(&(opB->Binit), i, j, -dt); 
-                } else {
-                    cvxmat_set(&(opB->Binit), i, j, dt); 
-                }
-            }
-
-        }
-    }
-
-    cvxmat_multAtA(&opB->B0, &opB->Binit);
+    if (opB->active > 0) {
     
-    // double nsum;
-    // for (int i = 0; i < N; i++) {
-        
-    //     nsum = 0.0;
-    //     for (int j = 0; j < N; j++) {
-    //         double temp = cvxmat_get(&(opB->B0), i, j);
-    //         nsum += (temp*temp);
-    //     }
-    //     nsum = sqrt(nsum);
-
-    //     for (int j = 0; j < N; j++) {
-    //         double temp = cvxmat_get(&(opB->B0), i, j);
-    //         cvxmat_set(&(opB->B0), i, j, temp);
-    //     }
-
-    // }
-
-
-    double mat_norm = 0.0;
-    for (int i = 0; i < opB->B0.N; i++) {
-        mat_norm += (opB->B0.vals[i] * opB->B0.vals[i]);
-    }
-    mat_norm = sqrt(mat_norm);
-    opB->mat_norm = mat_norm;
-
-    for (int i = 0; i < opB->B0.N; i++) {
-        opB->B0.vals[i] /= mat_norm;
-    }
-
-    for (int i = 0; i < opB->B.N; i++) {
-        opB->B.vals[i] = opB->weight * opB->B0.vals[i];
-    }
-
-
-    double sum;
-    for (int j = 0; j < N; j++) {
-        sum = 0.0;
+        double tt;
         for (int i = 0; i < N; i++) {
-            double temp = cvxmat_get(&(opB->B), i, j);
-            sum += fabs(temp);
+            tt = N-i;
+            opB->C.vals[i] = tt*(tt+1)/2.0;
         }
-        opB->sigBdenom.vals[j] = sum;
-    }
 
-    for (int i = 0; i < N; i++) {
-        opB->sigB.vals[i] = 1.0/opB->sigBdenom.vals[i];
-    }
 
-    // for (int j = 0; j < N; j++) {
-    //     printf("\n row %d \n", j);
-    //     for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            for (int i = 0; i < N; i++) {
+                
+                if (i >= j) {
+                    if (j >= ind_inv) {
+                        cvxmat_set(&(opB->Binit), i, j, -dt); 
+                    } else {
+                        cvxmat_set(&(opB->Binit), i, j, dt); 
+                    }
+                }
+
+            }
+        }
+
+        cvxmat_multAtA(&opB->B0, &opB->Binit);
+        
+        // double nsum;
+        // for (int i = 0; i < N; i++) {
             
-    //             double temp = cvxmat_get(&(opB->B), j, i); 
-    //             printf("%.2e  ", temp);
+        //     nsum = 0.0;
+        //     for (int j = 0; j < N; j++) {
+        //         double temp = cvxmat_get(&(opB->B0), i, j);
+        //         nsum += (temp*temp);
+        //     }
+        //     nsum = sqrt(nsum);
 
-    //     }
-    // }
+        //     for (int j = 0; j < N; j++) {
+        //         double temp = cvxmat_get(&(opB->B0), i, j);
+        //         cvxmat_set(&(opB->B0), i, j, temp);
+        //     }
+
+        // }
+
+
+        double mat_norm = 0.0;
+        for (int i = 0; i < opB->B0.N; i++) {
+            mat_norm += (opB->B0.vals[i] * opB->B0.vals[i]);
+        }
+        mat_norm = sqrt(mat_norm);
+        opB->mat_norm = mat_norm;
+
+        for (int i = 0; i < opB->B0.N; i++) {
+            opB->B0.vals[i] /= mat_norm;
+        }
+
+        for (int i = 0; i < opB->B.N; i++) {
+            opB->B.vals[i] = opB->weight * opB->B0.vals[i];
+        }
+
+
+        double sum;
+        for (int j = 0; j < N; j++) {
+            sum = 0.0;
+            for (int i = 0; i < N; i++) {
+                double temp = cvxmat_get(&(opB->B), i, j);
+                sum += fabs(temp);
+            }
+            opB->sigBdenom.vals[j] = sum;
+        }
+
+        for (int i = 0; i < N; i++) {
+            opB->sigB.vals[i] = 1.0/opB->sigBdenom.vals[i];
+        }
+
+        // for (int j = 0; j < N; j++) {
+        //     printf("\n row %d \n", j);
+        //     for (int i = 0; i < N; i++) {
+                
+        //             double temp = cvxmat_get(&(opB->B), j, i); 
+        //             printf("%.2e  ", temp);
+
+        //     }
+        // }
+    }
 }
 
 void cvxop_bval_reweight(cvxop_bval *opB, double weight_mod)

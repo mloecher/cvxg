@@ -115,19 +115,229 @@ void cvxmat_multAx(cvx_mat *b, cvx_mat *A, cvx_mat *x)
     }
 }
 
-void cvxmat_multAx2(cvx_mat *b, cvx_mat *A, cvx_mat *x)
+void cvxmat_multAx3(cvx_mat *b, cvx_mat *A, cvx_mat *x)
 {
     double sum;
     double *Apos = &(A->vals[0]);
+    double *bpos = &(b->vals[0]);
+    double *xpos;
+    int cols = A->cols;
     for (int i = 0; i < A->rows; i++) {
-        double *xpos = &(x->vals[0]);
+        xpos = &(x->vals[0]);
         sum = 0.0;
-        for (int j = 0; j < A->cols; j++) {
+        for (int j = 0; j < cols; j++) {
             sum += (*Apos++) * (*xpos++);
         }
-        b->vals[i] = sum;
+        *bpos = sum;
+        *bpos++;
     }
 }
+
+
+void cvxmat_multAx22(cvx_mat *b, cvx_mat *A, cvx_mat *x)
+{
+	int size = A->rows;
+
+    double *Apos1 = &(A->vals[0]);
+    double *Apos2 = &(A->vals[size]);
+
+    double *ypos = &(b->vals[0]);
+    
+    for(int i=0; i<size/2; i++)
+    {
+
+        double ytemp1 = 0;
+        double ytemp2 = 0;
+        double *xpos = &(x->vals[0]);
+
+        for(int j=0; j<size; j++)
+        {
+
+            ytemp1 += (*Apos1++) * (*xpos);
+            ytemp2 += (*Apos2++) * (*xpos);
+
+            xpos++;
+        }
+        *ypos = ytemp1;
+        ypos++;
+        *ypos = ytemp2;
+
+        ypos++;
+        
+        // skip next row
+        Apos1 += size;
+        Apos2 += size;
+    }
+
+}
+
+
+void cvxmat_multAx2(cvx_mat *b, cvx_mat *A, cvx_mat *x)
+{
+	int size = A->rows;
+
+    double *Apos1 = &(A->vals[0]);
+    double *Apos2 = &(A->vals[size]);
+
+    double *ypos = &(b->vals[0]);
+    
+    for(int i=0; i<size/2; i++)
+    {
+
+        register double ytemp1 = 0;
+
+        register double ytemp2 = 0;
+        register double *xpos = &(x->vals[0]);
+
+        int blocksize = size / 8;
+
+        double x0 = xpos[0];
+        double x1 = xpos[1];
+        
+        for(int j=0; j<blocksize; j++)
+        {
+
+            ytemp1 += x0 * (Apos1[0]);
+            ytemp2 += x0 * (Apos2[0]);
+
+            x0 = xpos[2];
+            ytemp1 += x1 * (Apos1[1]);
+            ytemp2 += x1 * (Apos2[1]);
+            x1 = xpos[3];
+
+            ytemp1 += x0 * (Apos1[2]);
+            ytemp2 += x0 * (Apos2[2]);
+
+            x0 = xpos[4];
+            ytemp1 += x1 * (Apos1[3]);
+            ytemp2 += x1 * (Apos2[3]);
+            x1 = xpos[5];
+
+            ytemp1 += x0 * (Apos1[4]);
+            ytemp2 += x0 * (Apos2[4]);
+
+            x0 = xpos[6];
+            ytemp1 += x1 * (Apos1[5]);
+            ytemp2 += x1 * (Apos2[5]);
+            x1 = xpos[7];
+
+            xpos+=8;
+            ytemp1 += x0 * (Apos1[6]);
+            ytemp2 += x0 * (Apos2[6]);
+            x0 = xpos[0];
+
+            ytemp1 += x1 * (Apos1[7]);
+            Apos1+=8;
+
+            ytemp2 += x1 * (Apos2[7]);
+            x1 = xpos[1];
+
+            Apos2+=8;
+
+            
+        }
+        
+        ypos[0] = ytemp1;
+        ypos[1] = ytemp2;
+
+        ypos+=2;
+        
+        // skip next row
+        Apos1 += size;
+        Apos2 += size;
+    }
+
+}
+
+
+
+
+
+
+
+void cvxmat_multAx4(cvx_mat *b, cvx_mat *A, cvx_mat *x)
+{
+	int size = A->rows;
+
+    register double ytemp1 = 0;
+
+    register double ytemp2 = 0;
+    register double *xpos = &(x->vals[0]);
+
+    int blocksize = size / 8;
+
+    double x0 = xpos[0];
+
+    double x1 = xpos[1];
+
+    double *ypos = &(b->vals[0]);
+
+    double *Apos1 = &(A->vals[0]);
+    double *Apos2 = &(A->vals[size]);
+    
+    for(int j=0; j<blocksize; j++)
+    {
+
+        ytemp1 += x0 * (Apos1[0]);
+        ytemp2 += x0 * (Apos2[0]);
+
+        x0 = xpos[2];
+        ytemp1 += x1 * (Apos1[1]);
+        ytemp2 += x1 * (Apos2[1]);
+        x1 = xpos[3];
+
+        ytemp1 += x0 * (Apos1[2]);
+        ytemp2 += x0 * (Apos2[2]);
+
+        x0 = xpos[4];
+        ytemp1 += x1 * (Apos1[3]);
+        ytemp2 += x1 * (Apos2[3]);
+        x1 = xpos[5];
+
+        ytemp1 += x0 * (Apos1[4]);
+        ytemp2 += x0 * (Apos2[4]);
+
+        x0 = xpos[6];
+        ytemp1 += x1 * (Apos1[5]);
+        ytemp2 += x1 * (Apos2[5]);
+        x1 = xpos[7];
+
+        xpos+=8;
+        ytemp1 += x0 * (Apos1[6]);
+        ytemp2 += x0 * (Apos2[6]);
+        x0 = xpos[0];
+
+        ytemp1 += x1 * (Apos1[7]);
+        Apos1+=8;
+
+        ytemp2 += x1 * (Apos2[7]);
+        x1 = xpos[1];
+
+        Apos2+=8;
+
+        
+    }
+    
+    ypos[0] = ytemp1;
+    ypos[1] = ytemp2;
+
+    ypos+=2;
+    
+    // skip next row
+    Apos1 += size;
+    Apos2 += size;
+
+}
+
+
+
+
+
+
+
+			
+
+
 
 
 void cvxmat_multAtx(cvx_mat *b, cvx_mat *A, cvx_mat *x)

@@ -1,7 +1,6 @@
 #include "op_beta.h"
 
 void cvxop_beta_init(cvxop_beta *opC, int N, double dt, double weight, int verbose) {
-    opC->active = 1;
     opC->N = N;
     opC->dt = dt;
     opC->verbose = verbose;
@@ -38,6 +37,15 @@ void cvxop_beta_reweight(cvxop_beta *opC, double weight_mod)
     }
 }
 
+
+void cvxop_beta_add2tau(cvxop_beta *opC, cvx_mat *tau_mat)
+{
+    if (opC->active > 0) {
+        for (int i = 0; i < opC->N; i++) {
+            tau_mat->vals[i] += fabs(opC->C.vals[i]);
+        }
+    }
+}
 
 
 void cvxop_beta_add2taumx(cvxop_beta *opC, cvx_mat *taumx)
