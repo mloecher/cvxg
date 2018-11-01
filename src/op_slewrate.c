@@ -5,7 +5,7 @@ void cvxop_slewrate_init(cvxop_slewrate *opD, int N, double dt, double smax, dou
     opD->active = 1;
     opD->N = N;
     opD->dt = dt;
-    opD->weight = init_weight;
+    opD->weight = init_weight; // / (1.0e3 * dt);
     opD->base_smax = smax*dt;
     opD->smax = smax*dt*opD->weight;
     opD->sigD = 1.0/(2.0*opD->weight);

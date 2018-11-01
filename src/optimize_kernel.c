@@ -11,15 +11,27 @@
 
 
 void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, cvxop_moments *opQ, cvxop_beta *opC, cvxop_bval *opB, 
-                         int N, double relax, int verbose, double bval_reduction, double *ddebug)
+                         int N, double relax, int verbose, double bval_reduction, double *ddebug, int N_converge)
 {
     
-    double stop_increase = 2.0e-2;
+    double stop_increase = 1.0e-1;
+    double stop_increase2 = 1.0e-4;
     int converge_count = 0;
+    int limit_count = 0;
+
+    int N_balance = 3;
+    int rebalance_count = 0;
+    int raise_allowed = 1;
+
+    int bad_slew_sum = 0;
+    int bad_moment_sum = 0;
+    
     int is_balanced = 0;
     if (bval_reduction <= 0) {
         is_balanced = 1;
     }
+
+    // int is_balanced = 1;
 
     for (int i = 0; i < opB->zB.N; i++) {
         opB->zB.vals[i] = 0.0;
@@ -30,6 +42,9 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
     for (int i = 0; i < opQ->zQ.N; i++) {
         opQ->zQ.vals[i] = 0.0;
     }
+
+    cvx_mat G0;
+    copyNewMatrix(G, &G0);
 
     cvx_mat xbar;
     copyNewMatrix(G, &xbar);
@@ -69,7 +84,7 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
     FILE *fp;
 
     int count = 0;
-    while (count < 20000) {
+    while (count < 16000) {
     
         // xbar = G-tau.*((D'*zD)+(Q'*zQ)+C'+(B'*zB))
         cvxmat_setvals(&taumx, 0.0);
@@ -109,15 +124,45 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
         // G=p*xbar+(1-p)*G;
         cvxmat_updateG(G, relax, &xbar);
 
+        if (count == 0) {
+            double tnorm = 0.0;
+            for (int i = 0; i < opB->zB.N; i++) {
+                tnorm += opB->zB.vals[i] * opB->zB.vals[i];
+            }
+            tnorm = sqrt(tnorm);
+
+            printf("\ncount0 norm B = %.2e\n", tnorm); 
+
+            tnorm = 0.0;
+            for (int i = 0; i < opQ->zQ.N; i++) {
+                tnorm += opQ->zQ.vals[i] * opQ->zQ.vals[i];
+            }
+            tnorm = sqrt(tnorm);
+            printf("\ncount0 norm Q = %.2e\n", tnorm); 
+
+            tnorm = 0.0;
+            for (int i = 0; i < opD->zD.N; i++) {
+                tnorm += opD->zD.vals[i] * opD->zD.vals[i];
+            }
+            tnorm = sqrt(tnorm);
+            printf("\ncount0 norm D = %.2e\n", tnorm); 
+        }
+        
+
         // Need checks here
         if ( count % 100 == 0 ) {
-            // double obj1 = 0.0;
-            // for (int ii = 0; ii < N; ii++) {
-            //     obj1 += opC->C.vals[ii] * G->vals[ii];    
-            // }
-            // obj1 = fabs(obj1);
+            double resid_diff = 0.0;
+            for (int ii = 0; ii < N; ii++) {
+                resid_diff += pow( ((G0.vals[ii] - G->vals[ii]) / opG->gmax), 2.0 );    
+            }
+            resid_diff = sqrt(resid_diff);
+            for (int ii = 0; ii < N; ii++) {
+                G0.vals[ii] = G->vals[ii];    
+            }
 
-            obj1 = cvxop_bval_getbval(opB, G, &tau);
+
+            // obj1 = cvxop_bval_getbval(opB, G, &tau);
+            obj1 = cvxop_gradient_getbval(opG, G);
 
             double percent_increase = ( sqrt(obj1)-sqrt(obj0) )/sqrt(obj0);
 
@@ -125,43 +170,108 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
                 converge_count += 1;
             } else {
                 converge_count = 0;
+                limit_count = 0;
             }
+
+            rebalance_count += 1;
+            // if (resid_diff < stop_increase) {
+            //     converge_count += 1;
+            // } else {
+            //     converge_count = 0;
+            //     limit_count = 0;
+            // }
             
+            int is_converged2 = 0;
+            if (fabs(percent_increase) < stop_increase2) {
+                is_converged2 = 1;
+            }
+            if (percent_increase < 0.0) {
+                is_converged2 = 1;
+            }
 
 
-            if (verbose>0) {printf("count = %d   cc = %d   obj = %.1f   increase = %.2e\n", count, converge_count, obj1, percent_increase);}
+            if (verbose>0) {printf("count = %d   cc = %d   obj = %.1f   increase = %.2e  resid_diff = %.2e\n", count, converge_count, obj1, percent_increase, resid_diff);}
             int bad_slew = cvxop_slewrate_check(opD, G, &tau);
             int bad_moments = cvxop_moments_check(opQ, G, &tau);
             int bad_gradient = cvxop_gradient_check(opG, G);
             
-            
-            if (bad_slew > 0)    {ddebug[5] += 1.0;}
-            if (bad_moments > 0) {ddebug[6] += 1.0;}
+            // double trash = cvxop_bval_getbval(opB, G, &tau);
+
+            if (bad_slew > 0)    {
+                ddebug[5] += 1.0;
+                bad_slew_sum += 1;
+            }
+            if (bad_moments > 0) {
+                ddebug[6] += 1.0;
+                bad_moment_sum += 1;
+            }
 
             int limit_break = 0;
             limit_break += bad_slew;
             limit_break += bad_moments;
             limit_break += bad_gradient;
 
-            printf("bval = %.2e  slew = %.2e  moment = %.2e  gradient = %.2e\n", opB->d_norm, opD->d_norm, opQ->d_norm, opG->d_norm);
-            double temp_scale = opG->d_norm;
-            printf("bval = %.2e  slew = %.2e  moment = %.2e  gradient = %.2e\n", 
-                    opB->d_norm/temp_scale, opD->d_norm/temp_scale, opQ->d_norm/temp_scale, opG->d_norm/temp_scale);
+            if (limit_break == 0) {
+                limit_count += 1;
+            } else {
+                limit_count = 0;
+            }
 
-            printf("bval / moment = %.2e  \n", 
-                    opB->d_norm/opQ->d_norm);
+            // printf("bval = %.2e  slew = %.2e  moment = %.2e  gradient = %.2e\n", opB->d_norm, opD->d_norm, opQ->d_norm, opG->d_norm);
+            // double temp_scale = opG->d_norm;
+            // printf("bval = %.2e  slew = %.2e  moment = %.2e  gradient = %.2e\n", 
+            //         opB->d_norm/temp_scale, opD->d_norm/temp_scale, opQ->d_norm/temp_scale, opG->d_norm/temp_scale);
 
-            printf("bval / g = %.2e  \n", 
-                    opB->d_norm/opG->d_norm);
+            // printf("bval / moment = %.2e  \n", 
+            //         opB->d_norm/opQ->d_norm);
 
-            if ( (count > 0) && (converge_count > 2) && (limit_break == 0) && (is_balanced > 0)) {
+            // printf("bval / g = %.2e  \n", 
+            //         opB->d_norm/opG->d_norm);
+
+            if ( (count > 0) && (converge_count > N_converge)  && (is_converged2 > 0) && (limit_break == 0) && (is_balanced > 0)) {
                 if (verbose > 0) {
                     printf("** Early termination at count = %d   bval = %.1f\n", count, obj1);
                 }
                 break;
             }
 
-            if ( (bval_reduction > 0.0) && (count > 0) && (converge_count > 4)) {
+            if ( (bval_reduction > 0.0) && (count > 0) && (rebalance_count > N_balance) && (limit_break == 0) && (raise_allowed > 0)) {
+                
+                if (verbose > 0) {
+                    printf("\n\n !-!-!-!-!-!-! Raising bvalue !-!-!-!-!-!-! \n\n");
+                }
+
+                rebalance_count = 0;
+                converge_count = 0;
+
+                cvxop_bval_reweight(opB, 2.0*bval_reduction);
+                cvxop_beta_reweight(opC, 2.0*bval_reduction);
+
+                cvxmat_setvals(&tau, 0.0);
+                cvxop_slewrate_add2tau(opD, &tau);
+                cvxop_moments_add2tau(opQ, &tau);
+                cvxop_bval_add2tau(opB, &tau);
+                cvxmat_EWinvert(&tau);
+                            
+
+                for (int i = 0; i < opB->zB.N; i++) {
+                    opB->zB.vals[i] = 0.0; 
+                }
+                for (int i = 0; i < opD->zD.N; i++) {
+                    opD->zD.vals[i] = 0.0;
+                }
+                for (int i = 0; i < opQ->zQ.N; i++) {
+                    opQ->zQ.vals[i] = 0.0;
+                }
+
+            }
+
+
+            if ( (bval_reduction > 0.0) && (count > 0) && (rebalance_count > N_converge) && (is_converged2 > 0)) {
+
+            
+                raise_allowed = 0;
+                rebalance_count = 0;
 
                 if (verbose > 0) {
                     printf("\n\n !-!-!-!-!-!-! Converged to an inadequate waveform, reweighting !-!-!-!-!-!-! \n\n");
@@ -171,15 +281,28 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
                 
                 // cvxop_bval_reweight(opB, bval_reduction);
 
-                if (bad_moments > 0) {cvxop_moments_reweight(opQ, bval_reduction);}
-                if (bad_slew > 0) {cvxop_slewrate_reweight(opD, bval_reduction);}
+                if (bad_moments > 0) {
+                    cvxop_moments_reweight(opQ, bval_reduction);
+                    // cvxop_slewrate_reweight(opD, 0.25*bval_reduction);
+                }
+                if (bad_slew > 0) {
+                    cvxop_slewrate_reweight(opD, bval_reduction);
+                    // cvxop_moments_reweight(opQ, 0.25*bval_reduction);
+                }
                 
                 if ((bad_slew < 1) && (bad_moments < 1)) {
-                    cvxop_bval_reweight(opB, 2.0*bval_reduction);
-                    cvxop_beta_reweight(opC, 2.0*bval_reduction);
+                    cvxop_bval_reweight(opB, 0.5*bval_reduction);
+                    cvxop_beta_reweight(opC, 0.5*bval_reduction);
+                    // is_balanced = 1;
                 } else {
+                    // cvxop_bval_reweight(opB, (1.0/bval_reduction));
+                    // cvxop_beta_reweight(opC, (1.0/bval_reduction));
                     is_balanced = 1;
                 }
+
+                bad_moment_sum = 0;
+                bad_slew_sum = 0;
+                
 
                 cvxmat_setvals(&tau, 0.0);
                 cvxop_slewrate_add2tau(opD, &tau);
@@ -199,17 +322,17 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
                 }
             }
 
-            if ( (count > 0) && (converge_count > 40)) {
-                if (verbose > 0) {
-                    printf("** Broke for failing to stay in limits at count = %d   bval = %.1f\n", count, obj1);
-                }
-                break;
-            }
+            // if ( (count > 0) && (converge_count > 4*N_converge)) {
+            //     if (verbose > 0) {
+            //         printf("** Broke for failing to stay in limits at count = %d   bval = %.1f\n", count, obj1);
+            //     }
+            //     break;
+            // }
 
             obj0 = obj1;
 
-            printf("WEIGHTS bval = %.2e  slew = %.2e  moment = %.2e  \n", 
-                    opB->weight, opD->weight, opQ->weight);
+            // printf("WEIGHTS bval = %.2e  slew = %.2e  moment = %.2e  B norm = %.2e\n", 
+            //         opB->weight, opD->weight, opQ->weight, opB->mat_norm);
 
 
 
@@ -245,12 +368,13 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
     // }
     // printf("\n\n");
 
-    ddebug[13] = cvxop_bval_getbval(opB, G, &tau);
+    ddebug[13] = cvxop_gradient_getbval(opG, G);
 
     free(xbar.vals);
     free(taumx.vals);
     free(txmx.vals);
     free(tau.vals);
+    free(G0.vals);
 
     ddebug[1] = opB->weight;
 
@@ -352,7 +476,7 @@ void run_kernel_refine(cvx_mat *G, double *ddebug, double gmax, double smax, dou
         opC.active = 0; 
     }
 
-    cvx_optimize_kernel(G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, bval_reduce, ddebug);
+    cvx_optimize_kernel(G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, bval_reduce, ddebug, 5);
     
     if (verbose > 0) {
         printf ("\n****************************************\n");
@@ -369,7 +493,7 @@ void run_kernel_diff4(double **G_out, int *N_out, double **ddebug,
                       double bval_weight, double slew_weight, double moments_weight, 
                       double bval_reduce, int N0)
 {
-    double relax = 1.5;
+    double relax = 1.8;
     int verbose = 1;
 
     int N = N0;
@@ -400,18 +524,24 @@ void run_kernel_diff4(double **G_out, int *N_out, double **ddebug,
     cvxop_gradient_setFixRange(&opG, ind_start180, ind_end180, 0.0);
 
     cvxop_slewrate opD;
-    cvxop_slewrate_init(&opD, N, dt, smax, slew_weight, verbose);
+    // cvxop_slewrate_init(&opD, N, dt, smax, slew_weight, verbose);
+    cvxop_slewrate_init(&opD, N, dt, smax, 1.0, verbose);
 
     cvxop_moments opQ;
+    // cvxop_moments_init(&opQ, N, ind_inv, dt,
+    //                     moment_tols, moments_weight,
+    //                     verbose);
     cvxop_moments_init(&opQ, N, ind_inv, dt,
-                        moment_tols, moments_weight,
+                        moment_tols, 10.0,
                         verbose);
     
     cvxop_beta opC;
-    cvxop_beta_init(&opC, N, dt, bval_weight, verbose);
+    // cvxop_beta_init(&opC, N, dt, bval_weight, verbose);
+    cvxop_beta_init(&opC, N, dt, 1.0, verbose);
     
     cvxop_bval opB;
-    cvxop_bval_init(&opB, N, ind_inv, dt, bval_weight, verbose);
+    // cvxop_bval_init(&opB, N, ind_inv, dt, bval_weight, verbose);
+    cvxop_bval_init(&opB, N, ind_inv, dt, 0.1, verbose);
 
     if (diffmode == 1) {
         opB.active = 0; 
@@ -431,7 +561,7 @@ void run_kernel_diff4(double **G_out, int *N_out, double **ddebug,
         (*ddebug)[i] = 0.0;
     }
 
-    cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, bval_reduce, *ddebug);
+    cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, bval_reduce, *ddebug, 5);
     
     if (verbose > 0) {
         printf ("\n****************************************\n");
@@ -441,12 +571,12 @@ void run_kernel_diff4(double **G_out, int *N_out, double **ddebug,
 
     double dt2 = 0.1e-3;
 
-    interp_down(&G, dt, dt2, TE, T_readout);
+    // interp_down(&G, dt, dt2, TE, T_readout);
 
     // run_kernel_refine(&G, *ddebug, gmax, smax, moment_tols, dt2, TE, 
     //                     T_readout, T_90, T_180, diffmode,
-    //                     10.0, 5000.0, 1000.0, 
-    //                     -1.0);
+    //                      bval_weight, slew_weight, moments_weight, 
+    //                     10.0);
 
     // cvxop_bval_reweight(&opB, 5.0);
     // cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, 0.5, *ddebug);
@@ -547,7 +677,7 @@ void run_kernel_diff(double **G_out, int *N_out, double gmax, double smax, doubl
     double *ddebug;
 	ddebug = (double *)malloc(48*sizeof(double));
     
-    cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, 0.75, ddebug);
+    cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, 0.75, ddebug, 8);
     
 
     *N_out = G.rows;
@@ -628,7 +758,7 @@ void run_kernel_diff2(double **G_out, int *N_out, double gmax, double smax,
     double *ddebug;
 	ddebug = (double *)malloc(48*sizeof(double));
 
-    cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, 0.75, ddebug);
+    cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, 0.75, ddebug, 8);
     
 
     *N_out = G.rows;
@@ -709,7 +839,7 @@ void run_kernel_diff3(double **G_out, int *N_out, double gmax, double smax,
     double *ddebug;
 	ddebug = (double *)malloc(48*sizeof(double));
 
-    cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, -1.0, ddebug);
+    cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, -1.0, ddebug, 8);
     
     if (verbose > 0) {
         printf ("\n--- Finished diff kernel3 in %d iterations\n\n", (int)ddebug[0]);

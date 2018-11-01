@@ -28,6 +28,7 @@ void cvxop_gradient_limiter(cvxop_gradient *opG, cvx_mat *xbar);
 void cvxop_gradient_setFixRange(cvxop_gradient *opG, int start, int end, double val);
 void cvxop_init_G(cvxop_gradient *opG, cvx_mat *G);
 int cvxop_gradient_check(cvxop_gradient *opG, cvx_mat *G);
+double cvxop_gradient_getbval(cvxop_gradient *opG, cvx_mat *G);
 void cvxop_gradient_destroy(cvxop_gradient *opG);
 
 

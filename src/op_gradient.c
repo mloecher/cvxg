@@ -83,6 +83,26 @@ int cvxop_gradient_check(cvxop_gradient *opG, cvx_mat *G)
     return grad_bad;
 }
 
+double cvxop_gradient_getbval(cvxop_gradient *opG, cvx_mat *G)
+{
+    double Gt = 0;
+    double bval = 0;
+    double mod = 71576597699.4529; // (GAMMA*2*pi)^2
+
+
+    for (int i = 0; i < opG->N; i++) {
+        if (i < opG->ind_inv) {
+            Gt += G->vals[i];
+        } else {
+            Gt -= G->vals[i];
+        }
+        bval += Gt*Gt;
+    }    
+    bval *= (mod * opG->dt * opG->dt * opG->dt);
+
+    return bval;
+}   
+
 void cvxop_gradient_destroy(cvxop_gradient *opG)
 {
     free(opG->Gfix.vals);

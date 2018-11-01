@@ -19,6 +19,7 @@ typedef struct {
 
     double d_norm;
     double weight;
+    double mat_norm;
 
     cvx_mat Binit;
     cvx_mat B0;
@@ -33,6 +34,8 @@ typedef struct {
     cvx_mat zBbuff;
     cvx_mat zBbar;
     cvx_mat Bx;
+
+    cvx_mat C;
 
     cvx_mat norm_helper;
 
