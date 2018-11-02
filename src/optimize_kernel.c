@@ -25,7 +25,7 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
     
     double stop_increase = 1.0e-1;
     double stop_increase2 = 1.0e-4;
-    double stop_increase3 = 2.0e-3;
+    double stop_increase3 = 3.0e-3;
     int converge_count = 0;
     int limit_count = 0;
 
@@ -553,8 +553,16 @@ void run_kernel_refine(cvx_mat *G, double *ddebug, double gmax, double smax, dou
         opC.active = 0; 
     }
 
+    ddebug[14] = opB.weight;
+    ddebug[15]  = opQ.weight;
+    ddebug[16]  = opD.weight;
+
     cvx_optimize_kernel(G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, bval_reduce, ddebug, 6);
     
+    ddebug[17] = opB.weight;
+    ddebug[18]  = opQ.weight;
+    ddebug[19]  = opD.weight;
+
     if (verbose > 0) {
         printf ("\n****************************************\n");
         printf ("--- Finished diff kernel4 refiner in %d iterations  b weight = %.1e", (int)(ddebug)[0], (ddebug)[1]);
@@ -640,7 +648,7 @@ void run_kernel_diff4(double **G_out, int *N_out, double **ddebug,
         (*ddebug)[i] = 0.0;
     }
 
-    cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, bval_reduce, *ddebug, 10);
+    cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, bval_reduce, *ddebug, 6);
     
     if (verbose > 0) {
         printf ("\n****************************************\n");
@@ -648,14 +656,14 @@ void run_kernel_diff4(double **G_out, int *N_out, double **ddebug,
         printf ("\n****************************************\n");
     }
 
-    double dt2 = 0.1e-3;
+    double dt2 = dt / 4.0;
 
-    // interp_down(&G, dt, dt2, TE, T_readout);
+    interp_down(&G, dt, dt2, TE, T_readout);
 
-    // run_kernel_refine(&G, *ddebug, gmax, smax, moment_tols, dt2, TE, 
-    //                     T_readout, T_90, T_180, diffmode,
-    //                      bval_weight, slew_weight, moments_weight, 
-    //                     10.0);
+    run_kernel_refine(&G, *ddebug, gmax, smax, moment_tols, dt2, TE, 
+                        T_readout, T_90, T_180, diffmode,
+                        opB.weight, 10.0*opD.weight, 10.0*opQ.weight, 
+                        bval_reduce);
 
     // cvxop_bval_reweight(&opB, 5.0);
     // cvx_optimize_kernel(&G, &opG, &opD, &opQ, &opC, &opB, N, relax, verbose, 0.5, *ddebug);
