@@ -115,7 +115,7 @@ void cvxmat_multAx(cvx_mat *b, cvx_mat *A, cvx_mat *x)
     }
 }
 
-void cvxmat_multAx3(cvx_mat *b, cvx_mat *A, cvx_mat *x)
+void cvxmat_multAx2(cvx_mat *b, cvx_mat *A, cvx_mat *x)
 {
     double sum;
     double *Apos = &(A->vals[0]);
@@ -172,7 +172,7 @@ void cvxmat_multAx22(cvx_mat *b, cvx_mat *A, cvx_mat *x)
 }
 
 
-void cvxmat_multAx2(cvx_mat *b, cvx_mat *A, cvx_mat *x)
+void cvxmat_multAx23(cvx_mat *b, cvx_mat *A, cvx_mat *x)
 {
 	int size = A->rows;
 

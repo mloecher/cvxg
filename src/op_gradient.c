@@ -21,8 +21,8 @@ void cvxop_gradient_init(cvxop_gradient *opG, int N, double dt, double gmax, int
 void cvxop_gradient_setFixRange(cvxop_gradient *opG, int start, int end, double val)
 {
     if (start < 0) {start = 0;}
-    if (end > opG->Gfix.N) {end = opG->Gfix.N;}
-    for (int i = start; i < end; i++) {
+    if (end > (opG->Gfix.N-1)) {end = (opG->Gfix.N-1);}
+    for (int i = start; i <= end; i++) {
         opG->Gfix.vals[i] = val;
     }
 }

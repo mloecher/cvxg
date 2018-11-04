@@ -258,6 +258,7 @@ void cvxop_bval_destroy(cvxop_bval *opB)
 {
     free(opB->Binit.vals);
     free(opB->B.vals);
+    free(opB->B0.vals);
     free(opB->sigBdenom.vals);
     free(opB->sigB.vals);
 
@@ -268,4 +269,7 @@ void cvxop_bval_destroy(cvxop_bval *opB)
     free(opB->zBbuff.vals);
     free(opB->zBbar.vals);
     free(opB->Bx.vals);
+
+    free(opB->norm_helper.vals);
+    free(opB->C.vals);
 }

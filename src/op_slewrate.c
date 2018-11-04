@@ -162,7 +162,7 @@ int cvxop_slewrate_check(cvxop_slewrate *opD, cvx_mat *G, cvx_mat *tau)
 
     if (opD->verbose>0) {  
         printf("    Slew check:     (%d)  %d                                           norma = %.2e \n", slew_bad, slew_too_high, AzX);
-        printf("  ^^^  norm_helper slew  nh_2 = %.2e    nh_inf = %.2e    nh_1 = %.2e\n", nh_2, nh_inf, nh_1);
+        // printf("  ^^^  norm_helper slew  nh_2 = %.2e    nh_inf = %.2e    nh_1 = %.2e\n", nh_2, nh_inf, nh_1);
     }
 
     // double weight_mod = norm1/norm0;
@@ -180,4 +180,5 @@ void cvxop_slewrate_destroy(cvxop_slewrate *opD)
     free(opD->zDbuff.vals);
     free(opD->zDbar.vals);
     free(opD->Dx.vals);
+    free(opD->norm_helper.vals);
 }

@@ -303,7 +303,7 @@ int cvxop_moments_check(cvxop_moments *opQ, cvx_mat *G, cvx_mat *tau)
 
     if (opQ->verbose>0) {   
         printf("    Moments check:  (%d)  %.2e  %.2e  %.2e              norma = %.2e\n", moments_bad, opQ->Qx.vals[0], opQ->Qx.vals[1], opQ->Qx.vals[2], AzX);
-        printf("  ^^^  norm_helper momt  nh_2 = %.2e    nh_inf = %.2e    nh_1 = %.2e\n", nh_2, nh_inf, nh_1);
+        // printf("  ^^^  norm_helper momt  nh_2 = %.2e    nh_inf = %.2e    nh_1 = %.2e\n", nh_2, nh_inf, nh_1);
     }
 
     return moments_bad;
@@ -340,13 +340,18 @@ int main (void)
 void cvxop_moments_destroy(cvxop_moments *opQ)
 {
     free(opQ->moment_tol.vals);
+    free(opQ->moment_tol0.vals);
     free(opQ->norms.vals);
     free(opQ->Q.vals);
+    free(opQ->Q0.vals);
     free(opQ->sigQ.vals);
     free(opQ->zQ.vals);
     free(opQ->zQbuff.vals);
     free(opQ->zQbar.vals);
     free(opQ->Qx.vals);
+
+    free(opQ->norm_helper.vals);
+    free(opQ->tau_helper.vals);
 }
 
 

@@ -8,3 +8,5 @@ testing/
 python/*.c
 python/*.cpp
 python/.ipynb_checkpoints/
+gmon.out
+prof_output
