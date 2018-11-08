@@ -25,12 +25,12 @@ int cvxmat_alloc(cvx_mat *mat, int rows, int cols)
 
 double cvxmat_get(cvx_mat *mat, int row, int col) 
 {
-    return mat->vals[col + mat->cols * row];
+    return mat->vals[mat->cols * row + col];
 }
 
 void cvxmat_set(cvx_mat *mat, int row, int col, double val) 
 {
-    mat->vals[col + mat->cols * row] = val;
+    mat->vals[mat->cols * row + col] = val;
 }
 
 void cvxmat_EWinvert(cvx_mat *mat) 

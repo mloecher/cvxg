@@ -16,13 +16,18 @@ void cvxop_moments_init(cvxop_moments *opQ, int N, int ind_inv, double dt,
 
     opQ->Nm = 3; // Hard code maximum number of moments for now
 
-    cvxmat_alloc(&opQ->Q0, N, opQ->Nm);
-    cvxmat_alloc(&opQ->Q, N, opQ->Nm);
     cvxmat_alloc(&opQ->moment_tol0, opQ->Nm, 1);
-    cvxmat_alloc(&opQ->moment_tol, opQ->Nm, 1);
+    cvxmat_alloc(&opQ->Q0, opQ->Nm, N);
 
     cvxmat_alloc(&opQ->norms, opQ->Nm, 1);
+
+    cvxmat_alloc(&opQ->Q, opQ->Nm, N);
+    cvxmat_alloc(&opQ->moment_tol, opQ->Nm, 1);
+
     cvxmat_alloc(&opQ->sigQ, opQ->Nm, 1);
+
+
+    
 
     cvxmat_alloc(&opQ->zQ, opQ->Nm, 1);
     cvxmat_alloc(&opQ->zQbuff, opQ->Nm, 1);
@@ -32,71 +37,65 @@ void cvxop_moments_init(cvxop_moments *opQ, int N, int ind_inv, double dt,
     cvxmat_alloc(&opQ->norm_helper, N, 1);
     cvxmat_alloc(&opQ->tau_helper, N, 1);
 
-    // Copy moment tolerances into cvx_mat array
+    // Copy initial moment tolerances into cvx_mat array
     for (int j = 0; j < opQ->Nm; j++) {
         opQ->moment_tol0.vals[j] = moment_tols_in[j];
     }
 
-    // Set Q array rows to dt^momentnum
+    // Set Q0 array rows to dt^momentnum
     for (int j = 0; j < opQ->Nm; j++) {
         for (int i = 0; i < N; i++) {
             double temp = pow((dt*i), (double)j);
-            cvxmat_set(&(opQ->Q0), i, j, temp);
+            cvxmat_set(&(opQ->Q0), j, i, temp);
         }
     }
     
-    // Scale so that Q0 returns true moments
+    // Scale so that Q0 returns true moments (in T*s/m)
     for (int j = 0; j < opQ->Nm; j++) {
         for (int i = 0; i < N; i++) {
-            double temp = cvxmat_get(&(opQ->Q0), i, j) * gamma * dt;
-            cvxmat_set(&(opQ->Q0), i, j, temp);
+            double temp = cvxmat_get(&(opQ->Q0), j, i) * dt;
+            cvxmat_set(&(opQ->Q0), j, i, temp);
         }
     }
     
     // Gradient values need to be reversed after the 180
     for (int j = 0; j < opQ->Nm; j++) {
         for (int i = ind_inv; i < N; i++) {
-            double temp = cvxmat_get(&(opQ->Q0), i, j) * -1.0;
-            cvxmat_set(&(opQ->Q0), i, j, temp);
+            double temp = cvxmat_get(&(opQ->Q0), j, i) * -1.0;
+            cvxmat_set(&(opQ->Q0), j, i, temp);
         }
     }
 
-    // Count the number of moment constraints that are "on"
-    double active_tols = 0.0;
-    for (int j = 0; j < opQ->Nm; j++) {
-        if (opQ->moment_tol.vals[j] >= 0) {
-            active_tols += 1.0;
-        }
-    }
 
     // Calculate the row norms of the moment array and store
     for (int j = 0; j < opQ->Nm; j++) {
         for (int i = 0; i < N; i++) {
-            double temp = cvxmat_get(&(opQ->Q0), i, j);
+            double temp = cvxmat_get(&(opQ->Q0), j, i);
             opQ->norms.vals[j] += temp*temp;
         }
         opQ->norms.vals[j] = sqrt(opQ->norms.vals[j]);
-        // opQ->norms.vals[j] = 1.0;
     }
 
     // Scale the Q0 array and copy into Q
+    // Q = Q0 * weight/norms
+    // also scale moment_tol as scaled moment_tol0
     for (int j = 0; j < opQ->Nm; j++) {
         for (int i = 0; i < N; i++) {
-            double temp = cvxmat_get(&(opQ->Q0), i, j);
-            cvxmat_set(&(opQ->Q), i, j, opQ->weight * temp / opQ->norms.vals[j]);
+            double temp = cvxmat_get(&(opQ->Q0), j, i);
+            cvxmat_set(&(opQ->Q), j, i, opQ->weight * temp / opQ->norms.vals[j]);
         }
         opQ->moment_tol.vals[j] = opQ->weight *  opQ->moment_tol0.vals[j] / opQ->norms.vals[j];
-
     }
+
 
     if (opQ->verbose>0) {   
-        printf("Q norms = %.2e  %.2e  %.2e    active norms = %.1f\n", opQ->norms.vals[0], opQ->norms.vals[1], opQ->norms.vals[2], active_tols);
+        printf("Q norms = %.2e  %.2e  %.2e\n", opQ->norms.vals[0], opQ->norms.vals[1], opQ->norms.vals[2]);
     }
 
-    // Calculate sigQ
+    // Calculate sigQ as inverse of sum(abs(row of Q))
     for (int j = 0; j < opQ->Nm; j++) {
         for (int i = 0; i < N; i++) {
-            double temp = cvxmat_get(&(opQ->Q), i, j);
+            double temp = cvxmat_get(&(opQ->Q), j, i);
             opQ->sigQ.vals[j] += fabs(temp);
         }
         opQ->sigQ.vals[j] = 1.0 / opQ->sigQ.vals[j];
@@ -107,36 +106,28 @@ void cvxop_moments_init(cvxop_moments *opQ, int N, int ind_inv, double dt,
     }
 }
 
-
+/*
+ * Reweight the constraint and update all the subsequent weightings, and also the current descent direction zQ
+ * basically weight_mod * Q
+ */
 void cvxop_moments_reweight(cvxop_moments *opQ, double weight_mod)
 {
     opQ->weight *= weight_mod;
 
-    // Calculate the row norms of the moment array and store
-    for (int j = 0; j < opQ->Nm; j++) {
-        opQ->norms.vals[j] = 0.0;
-        for (int i = 0; i < opQ->N; i++) {
-            double temp = cvxmat_get(&(opQ->Q0), i, j);
-            opQ->norms.vals[j] += temp*temp;
-        }
-        opQ->norms.vals[j] = sqrt(opQ->norms.vals[j]);
-        // opQ->norms.vals[j] = 1.0;
-    }
-
     // Scale the Q0 array and copy into Q
     for (int j = 0; j < opQ->Nm; j++) {
         for (int i = 0; i < opQ->N; i++) {
-            double temp = cvxmat_get(&(opQ->Q0), i, j);
-            cvxmat_set(&(opQ->Q), i, j, opQ->weight * temp / opQ->norms.vals[j]);
+            double temp = cvxmat_get(&(opQ->Q0), j, i);
+            cvxmat_set(&(opQ->Q), j, i, opQ->weight * temp / opQ->norms.vals[j]);
         }
         opQ->moment_tol.vals[j] = opQ->weight *  opQ->moment_tol0.vals[j] / opQ->norms.vals[j];
     }
 
-    // Calculate sigQ
+    // Calculate sigQ as inverse of sum(abs(row of Q))
     for (int j = 0; j < opQ->Nm; j++) {
         opQ->sigQ.vals[j] = 0.0;
         for (int i = 0; i < opQ->N; i++) {
-            double temp = cvxmat_get(&(opQ->Q), i, j);
+            double temp = cvxmat_get(&(opQ->Q), j, i);
             opQ->sigQ.vals[j] += fabs(temp);
         }
         opQ->sigQ.vals[j] = 1.0 / opQ->sigQ.vals[j];
