@@ -10,3 +10,5 @@ python/*.cpp
 python/.ipynb_checkpoints/
 gmon.out
 prof_output
+matlab/*.asv
+matlab/*.mexw64

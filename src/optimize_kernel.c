@@ -153,7 +153,7 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
 
             if (verbose>0) {printf("\ncount = %d   rc = %d   obj = %.1f  backlog_diff = %.2e\n", count, rebalance_count, obj1, backlog_diff);}
             int bad_slew = cvxop_slewrate_check(opD, G);
-            int bad_moments = cvxop_moments_check(opQ, G, &tau);
+            int bad_moments = cvxop_moments_check(opQ, G);
             int bad_gradient = cvxop_gradient_check(opG, G);
 
             int limit_break = 0;
@@ -236,7 +236,7 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
     free(bval_backlog);
 
     int bad_slew = cvxop_slewrate_check(opD, G);
-    int bad_moments = cvxop_moments_check(opQ, G, &tau);
+    int bad_moments = cvxop_moments_check(opQ, G);
     int bad_gradient = cvxop_gradient_check(opG, G);
 
     ddebug[7] = bad_slew;
@@ -414,14 +414,10 @@ void run_kernel_diff(double **G_out, int *N_out, double **ddebug,
 }
 
 
-
-
 void run_kernel_diff_fixedN(double **G_out, int *N_out, double **ddebug,
                             int N0, double gmax, double smax, 
                             double *moment_tols, double TE, 
-                            double T_readout, double T_90, double T_180, int diffmode,
-                            double bval_weight, double slew_weight, double moments_weight, 
-                            double bval_reduce,  double dt_out)
+                            double T_readout, double T_90, double T_180, int diffmode, double dt_out)
 {
     int N = N0;
     double dt = (TE-T_readout) * 1.0e-3 / (double) N;
@@ -430,20 +426,16 @@ void run_kernel_diff_fixedN(double **G_out, int *N_out, double **ddebug,
                         N, dt, gmax, smax, 
                         moment_tols, TE, 
                         T_readout, T_90, T_180, diffmode,
-                        bval_weight, slew_weight, moments_weight, 
-                        bval_reduce,  dt_out,
+                        1.0, 1.0, 10.0, 
+                        10.0,  dt_out,
                         0, NULL);
-
-
 }
 
 
 void run_kernel_diff_fixedN_Gin(double **G_out, int *N_out, double **ddebug,
                                 double *G_in, int N0, double gmax, double smax, 
                                 double *moment_tols, double TE, 
-                                double T_readout, double T_90, double T_180, int diffmode,
-                                double bval_weight, double slew_weight, double moments_weight, 
-                                double bval_reduce,  double dt_out)
+                                double T_readout, double T_90, double T_180, int diffmode, double dt_out)
 {
     int N = N0;
     double dt = (TE-T_readout) * 1.0e-3 / (double) N;
@@ -452,11 +444,9 @@ void run_kernel_diff_fixedN_Gin(double **G_out, int *N_out, double **ddebug,
                         N, dt, gmax, smax, 
                         moment_tols, TE, 
                         T_readout, T_90, T_180, diffmode,
-                        bval_weight, slew_weight, moments_weight, 
-                        bval_reduce,  dt_out,
+                        1.0, 1.0, 10.0, 
+                        10.0,  dt_out,
                         1, G_in);
-
-
 }
 
 
@@ -465,9 +455,7 @@ void run_kernel_diff_fixedN_Gin(double **G_out, int *N_out, double **ddebug,
 void run_kernel_diff_fixeddt(double **G_out, int *N_out, double **ddebug,
                             double dt0, double gmax, double smax, 
                             double *moment_tols, double TE, 
-                            double T_readout, double T_90, double T_180, int diffmode,
-                            double bval_weight, double slew_weight, double moments_weight, 
-                            double bval_reduce,  double dt_out)
+                            double T_readout, double T_90, double T_180, int diffmode, double dt_out)
 {
     int N = round((TE-T_readout) * 1.0e-3/dt0);
     if (N < 5) {
@@ -481,8 +469,8 @@ void run_kernel_diff_fixeddt(double **G_out, int *N_out, double **ddebug,
                             N, dt, gmax, smax, 
                             moment_tols, TE, 
                             T_readout, T_90, T_180, diffmode,
-                            bval_weight, slew_weight, moments_weight, 
-                            bval_reduce,  dt_out,
+                            1.0, 1.0, 10.0, 
+                            10.0,  dt_out,
                             0, NULL);
 
 }
@@ -504,9 +492,7 @@ int main (void)
     double m_tol[3]={0.0, 0.0, 0.0};
 
     run_kernel_diff_fixedN(&G, &N, &debug, 256, 0.04, 20.0,
-                            m_tol, 200.0, 12.0, 4.0, 8.0, diffmode,
-                            1.0, 1.0, 10.0, 
-                            10.0,  -1.0);
+                            m_tol, 200.0, 12.0, 4.0, 8.0, diffmode, -1.0);
 
     return 0;
 }

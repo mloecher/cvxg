@@ -1,4 +1,4 @@
-function res = get_min_TE( target_bval, min_TE, max_TE, gmax, smax, m0_tol, m1_tol, m2_tol, T_readout, T_90, T_180, dt, diffmode )
+function res = get_min_TE( target_bval, min_TE, max_TE, gmax, smax, MMT, T_readout, T_90, T_180, dt, diffmode )
 %GET_MIN_TE Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -17,10 +17,10 @@ d = a + invphi * h;
 
 % disp([a,b,c,d]);
 
-Gc = mex_CVXG(gmax, smax, m0_tol, m1_tol, m2_tol, c, T_readout, T_90, T_180, dt, diffmode);
+Gc = mex_CVXG_fixdt(gmax, smax, MMT, c, T_readout, T_90, T_180, dt, diffmode);
 yc = abs(get_bval(Gc, T_readout, dt) - target_bval);
 
-Gd = mex_CVXG(gmax, smax, m0_tol, m1_tol, m2_tol, d, T_readout, T_90, T_180, dt, diffmode);
+Gd = mex_CVXG_fixdt(gmax, smax, MMT, d, T_readout, T_90, T_180, dt, diffmode);
 yd = abs(get_bval(Gd, T_readout, dt) - target_bval);
 
 fprintf('Finding TE (%d iterations): ', n);
@@ -32,7 +32,7 @@ for k = 1:n
         yd = yc;
         h = invphi*h;
         c = a + invphi2 * h;
-        Gc = mex_CVXG(gmax, smax, m0_tol, m1_tol, m2_tol, c, T_readout, T_90, T_180, dt, diffmode);
+        Gc = mex_CVXG_fixdt(gmax, smax, MMT, c, T_readout, T_90, T_180, dt, diffmode);
         yc = abs(get_bval(Gc, T_readout, dt) - target_bval);
     else
         a = c;
@@ -40,7 +40,7 @@ for k = 1:n
         yc = yd;
         h = invphi*h;
         d = a + invphi * h;
-        Gd = mex_CVXG(gmax, smax, m0_tol, m1_tol, m2_tol, d, T_readout, T_90, T_180, dt, diffmode);
+        Gd = mex_CVXG_fixdt(gmax, smax, MMT, d, T_readout, T_90, T_180, dt, diffmode);
         yd = abs(get_bval(Gd, T_readout, dt) - target_bval);
     end
 end

@@ -65,7 +65,7 @@ void cvxop_slewrate_add2tau(cvxop_slewrate *opD, cvx_mat *tau_mat)
 void cvxop_slewrate_add2taumx(cvxop_slewrate *opD, cvx_mat *taumx)
 {   
     
-    // MATH: taumx = D*zD
+    // MATH: taumx += D*zD
     taumx->vals[0] += -opD->weight*opD->zD.vals[0];
     for (int i = 1; i < opD->zD.N; i++) {
         taumx->vals[i] += opD->weight*(opD->zD.vals[i-1] - opD->zD.vals[i]);

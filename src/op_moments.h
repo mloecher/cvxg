@@ -16,7 +16,6 @@ typedef struct {
     int ind_inv;
     double dt;
 
-    double d_norm;
     double weight;
 
     cvx_mat Q0;
@@ -31,8 +30,7 @@ typedef struct {
     cvx_mat zQbuff;
     cvx_mat zQbar;
     cvx_mat Qx;
-    cvx_mat norm_helper;
-    cvx_mat tau_helper;
+
 
 } cvxop_moments;
 
@@ -40,13 +38,10 @@ typedef struct {
 void cvxop_moments_init(cvxop_moments *opQ, int N, int ind_inv, double dt,
                         double *moment_tols_in, double init_weight, int verbose);
 
-void cvxop_moments_init_old(cvxop_moments *opQ, int N, int ind_inv, double dt,
-                        double m0_tol, double m1_tol, double m2_tol, int verbose);
-
 void cvxop_moments_add2tau(cvxop_moments *opQ, cvx_mat *tau_mat);
 void cvxop_moments_add2taumx(cvxop_moments *opQ, cvx_mat *taumx);
 void cvxop_moments_update(cvxop_moments *opQ, cvx_mat *txmx, double relax);
-int cvxop_moments_check(cvxop_moments *opQ, cvx_mat *G, cvx_mat *tau);
+int cvxop_moments_check(cvxop_moments *opQ, cvx_mat *G);
 void cvxop_moments_reweight(cvxop_moments *opQ, double weight_mod);
 void cvxop_moments_destroy(cvxop_moments *opQ);
 

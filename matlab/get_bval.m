@@ -6,10 +6,11 @@ function bval = get_bval(G, T_READOUT, dt)
     tINV = floor(TE/dt/1e3/2);
 
     GAMMA   = 42.58e3; 
-    INV = ones(numel(G),1);   INV(tINV:end) = -1;
-    C=tril(ones(numel(G)));
-    C2 = C'*C;
-    bval = (GAMMA*2*pi)^2*(G'.*INV*dt)'*(C2*(G'.*INV*dt))*dt;
+    INV = ones(numel(G),1);   
+    INV(tINV:end) = -1;
 
+    Gt = cumsum(G'.*INV.*dt);
+    bval = sum(Gt.*Gt);
+    bval = bval * (GAMMA*2*pi)^2 * dt;
 end
 

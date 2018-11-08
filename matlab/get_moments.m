@@ -6,7 +6,6 @@ function moments = get_moments( G, T_READOUT, dt )
 
     tINV = floor(TE/dt/1e3/2);
 
-    GAMMA   = 42.58e3; 
     INV = ones(numel(G),1);   INV(tINV:end) = -1;
     
     Nm = 5;
@@ -17,6 +16,6 @@ function moments = get_moments( G, T_READOUT, dt )
         tMat( mm, : ) = tvec.^(mm-1);
     end
     
-    moments = abs(GAMMA*dt*tMat*(G'.*INV));
+    moments = abs(dt*tMat*(G'.*INV));
 end
 
