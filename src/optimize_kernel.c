@@ -152,7 +152,7 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
 
 
             if (verbose>0) {printf("\ncount = %d   rc = %d   obj = %.1f  backlog_diff = %.2e\n", count, rebalance_count, obj1, backlog_diff);}
-            int bad_slew = cvxop_slewrate_check(opD, G, &tau);
+            int bad_slew = cvxop_slewrate_check(opD, G);
             int bad_moments = cvxop_moments_check(opQ, G, &tau);
             int bad_gradient = cvxop_gradient_check(opG, G);
 
@@ -235,7 +235,7 @@ void cvx_optimize_kernel(cvx_mat *G, cvxop_gradient *opG, cvxop_slewrate *opD, c
     free(tau.vals);
     free(bval_backlog);
 
-    int bad_slew = cvxop_slewrate_check(opD, G, &tau);
+    int bad_slew = cvxop_slewrate_check(opD, G);
     int bad_moments = cvxop_moments_check(opQ, G, &tau);
     int bad_gradient = cvxop_gradient_check(opG, G);
 
@@ -334,19 +334,11 @@ void run_kernel_diff(double **G_out, int *N_out, double **ddebug,
     if (diffmode == 1) {
         opB.active = 0; 
         opC.active = 1;
-        opB.compute_mode = 0;
         N_converge = 24; 
         stop_increase = 1.0e-4;
     } else if (diffmode == 2) {
         opC.active = 0; 
         opB.active = 1;
-        opB.compute_mode = 0;
-        N_converge = 8;
-        stop_increase = 1.0e-3; 
-    } else if (diffmode == 3) {
-        opC.active = 0; 
-        opB.active = 1;
-        opB.compute_mode = 2;
         N_converge = 8;
         stop_increase = 1.0e-3; 
     }

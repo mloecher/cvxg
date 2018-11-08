@@ -17,8 +17,6 @@ typedef struct {
     double gmax;
     int ind_inv;
 
-    double d_norm;
-
     cvx_mat Gfix;
 
 } cvxop_gradient;

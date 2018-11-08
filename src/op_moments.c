@@ -1,5 +1,9 @@
 #include "op_moments.h"
 
+/**
+ * Initialize the opB struct
+ * This is the operator that sets
+ */
 void cvxop_moments_init(cvxop_moments *opQ, int N, int ind_inv, double dt,
                         double *moment_tols_in, double init_weight, int verbose)
 {
@@ -11,8 +15,6 @@ void cvxop_moments_init(cvxop_moments *opQ, int N, int ind_inv, double dt,
     opQ->weight = init_weight;
 
     opQ->Nm = 3; // Hard code maximum number of moments for now
-
-    double gamma = 42.58e3;
 
     cvxmat_alloc(&opQ->Q0, N, opQ->Nm);
     cvxmat_alloc(&opQ->Q, N, opQ->Nm);
