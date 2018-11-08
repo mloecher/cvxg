@@ -334,11 +334,19 @@ void run_kernel_diff(double **G_out, int *N_out, double **ddebug,
     if (diffmode == 1) {
         opB.active = 0; 
         opC.active = 1;
+        opB.compute_mode = 0;
         N_converge = 24; 
         stop_increase = 1.0e-4;
     } else if (diffmode == 2) {
         opC.active = 0; 
         opB.active = 1;
+        opB.compute_mode = 0;
+        N_converge = 8;
+        stop_increase = 1.0e-3; 
+    } else if (diffmode == 3) {
+        opC.active = 0; 
+        opB.active = 1;
+        opB.compute_mode = 2;
         N_converge = 8;
         stop_increase = 1.0e-3; 
     }

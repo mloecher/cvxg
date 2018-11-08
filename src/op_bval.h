@@ -10,7 +10,8 @@
 typedef struct {
     int active;
     int verbose;
-
+    int compute_mode;
+    
     int N;
     int ind_inv;
     double dt;
@@ -34,6 +35,7 @@ typedef struct {
     cvx_mat zBbuff;
     cvx_mat zBbar;
     cvx_mat Bx;
+    cvx_mat csx;
 
     cvx_mat C;
 
